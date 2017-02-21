@@ -14,8 +14,8 @@ This document introduces the code structure of create3Dhex_dir.m matlab file whi
 
 ![image](https://github.com/George-wu509/Cell-3D-segmentation-display-GUI/blob/master/cover/Segshow3D%20cover2.png)
 
-## How-to-simulate-the-first-cytoneme-model
-## [1: How to simulate the first cytoneme model ](##How-to-simulate-the-first-cytoneme-model)
+<a name="How-to-simulate-the-first-cytoneme-model" />
+## [1: How to simulate the first cytoneme model ]
 
 To run the first cytoneme model:
 step 1: change the parameter values in function p=parameter_set() (line 50)
