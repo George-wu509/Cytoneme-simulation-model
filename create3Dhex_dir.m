@@ -4,7 +4,7 @@ function create3Dhex_dir(key,p_pre)
  Create 3D or 2D hexial mesh data
 
 
- George at 2015.11.12
+ George at 2015.10.16 
 
  ==== vision information ===========================
  revision 2015.09.24 
@@ -14,12 +14,6 @@ function create3Dhex_dir(key,p_pre)
  > length=min(p.gradient_L*max(agrad,1),max(angle_g{thi}(:,1))); inline 712
  > (0924) add PL=5 mechanism, and fix script2()
  > (1016) add two pathfinding mechanisms
- > (1019) add cytoneme series after mechanisms
- > (1022) add for j=[1:(p.nx-p.w_dppcent)/2-2 p.nx:-1:(p.nx-p.w_dppcent)/2+2]
- > (1026) short pathfinding series add new and existing cytonemes
- > (1106) edit run_cytoneme_folder(2) bug
- > (1112) new 6 pathfinding mechanisms
- mechanisms
 =================================================
 %}
 if exist('p_pre')==1    
@@ -27,7 +21,6 @@ if exist('p_pre')==1
 else
     p=parameter_set();  
 end
-p.key=key;
 switch key
     case 1
         script1(p) % run cytoneme simulation
@@ -52,25 +45,20 @@ function p=parameter_set(p_pre)
 p.name='Model01_1';
 
 p.AN=1;  % pathfinding anglefunction: (1. const),(2. random),(3. max averagd gradient)
-p.LE=2; % pathfinding length function: (1. const),(2. random), (3. function of av4raged gradient)(4. highest concentration in thita)(5. function of inverse gradient)
-p.PF=1;   % probability of formation function: (1. const),(2. PF const/length), (3. function of averaged gradient),(4. d-effect)(5. inverse gradient)(6. it jt concentration)
-p.MA=1;     % morphogen transport amount function: (1. one cytoneme), (2. N cytoneme)
-p.CA=1;     % cytoneme capping criteria
+p.LE=4; % pathfinding length function: (1. const),(2. random), (3. function of av4raged gradient)(4. highest concentration in thita)
+p.PF=4;   % probability of formation function: (1. const),(2. PF const/length), (3. function of averaged gradient),(4. d-effect)
+p.MA=2;     % morphogen transport amount function: (1. one cytoneme), (2. N cytoneme)
 
-p.amount=3;    % transport morphogen through cytoneme [C/sec] (## no data!!)
+p.amount=1.5;    % transport morphogen through cytoneme [C/sec] (## no data!!)
 p.theta=1; % p.theta=1~12(degree: 0~330) if angle fun=1
-p.length=10; % length of const cytoneme value if length fun=1 (## Dpp_avg:20um [242], Hh_avg: 27um in P, 13um in A [26])
+p.length=20; % length of const cytoneme value if length fun=1 (## Dpp_avg:20um [242], Hh_avg: 27um in P, 13um in A [26])
 p.prob_format=0.2; % probability of cytoneme formation. if prob fun =1 (## estimated!)
-p.stop_format=0.2; % probability of cytoneme stop. if prob fun =1 (## estimated!)
 p.gradient_L=10; % cytoneme length gradient coefficient. if length fun=3, length=p.gradient_L* averaged gradient(## estimated!)
 p.gradient_P2=20; % cytoneme probability gradient coefficient. if probability fun=2, p_format=p.gradient_P*agrad; (## estimated!)
 p.gradient_P3=10; % cytoneme probability gradient coefficient. if probability fun=3, p_format=p.gradient_P*agrad; (## estimated!)
-p.gradient_P4=50; % cytoneme probability gradient coefficient. if probability fun=3, p_format=p.gradient_P*agrad; (## estimated!)
-p.gradient_P5=1; % cytoneme probability gradient coefficient. if probability fun=3, p_format=p.gradient_P*agrad; (## estimated!)
 p.dfun_option=2; % d-effect options. if probability fun=4 (## estimated)
-p.amount_dist=[0,5,10,20;5,3,2,1]; % cutoneme number depend on distance: [4 3 2 1] (## estimated from [26])
-p.capping=1; % filipodia capping check
-%p.L_lim=1;  % if cytoneme length larger than rs, p.L_lim=0.not p.L_lim=1
+p.amount_dist=[0,5,10,20;10,5,2,1]; % cutoneme number depend on distance: [4 3 2 1] (## estimated from [26])
+p.L_lim=0;
 
 % ----------------------------------------------------------------------
 
@@ -98,7 +86,7 @@ p.w_dppcent=8; % Dpp producing center width=9cells  (## Dpp signaling center wid
 p.height=0;  % if h=-1 means 2D
 
 p.sta_save_period=2;     % figures and record every generations
-p.area_rx=2;     % search space x radius (## Dpp:40um =2*Dpp_avg [242],Hh:54um in P,28um in A [26])
+p.area_rx=5;     % search space x radius (## Dpp:40um =2*Dpp_avg [242],Hh:54um in P,28um in A [26])
 p.area_ry=0;     % search space y radius (## Dpp:40um =2*Dpp_avg [242],Hh:54um in P,28um in A [26])
 %p.grad_r=40;     % calculate morphogen gradient range radius (## 40um =2*Dpp_avg [242],Hh:54um in P,28um in A [26])
 
@@ -112,7 +100,6 @@ p.alpha1=0.8;    % alpha value for figure1
 p.alpha2=0.7;    % alpha value for figure2
 p.range_n=5;     % cytoneme distance table value number 
 p.range_d=5;     % % cytoneme distance table diff distance
-p.fig_bound=20;  % % cytoneme show boundary
 
 if exist('p_pre')==1    
 n=length(p_pre);
@@ -133,21 +120,20 @@ sta.cyto=zeros(11,1);n=1;re=[];p.i=0;
 if p.img==1;
     [sta,p]=show_figure(sta,p,0);
 end
-sta_save=[];p.L_lim=0;
+sta_save=[];
 %sta.cyto_y=zeros(1,p.nx);
 % updata generation
 for i=1:p.max_gener
     sta=update_apical_dpp(sta,p);p.i=i; % transport update calculation
     sta=avg_y_cyto(sta,p);
-    sta2=sta_cut(sta,p);
-    sta_all{i}=sta2;
+    sta_all{i}=sta;
     if rem(i,p.sta_save_period)==0||i==p.max_gener
         disp(['generation  ' num2str(i)]);
         if p.img==1;
-        [sta,p]=show_figure(sta2,p,i,sta_save);
+        [sta,p]=show_figure(sta,p,i,sta_save);
         end
-        sta_save{n}=sta2;n=n+1;
-        [re,re_txt]=record(sta2,p,re);
+        sta_save{n}=sta;n=n+1;
+        [re,re_txt]=record(sta,p,re);
     end
 end
 
@@ -155,7 +141,6 @@ end
 if p.img==1;
     F5=figure(5);draw_fianl_record(p,re);
 end
-p=p_cut(p);
 save('cytoneme.mat','sta_save','p','re','re_txt','sta_all');
 toc;
 end % run cytoneme simulation
@@ -244,7 +229,7 @@ end
 sta_save=[];
 %sta.cyto_y=zeros(1,p.nx);
 % updata generation
-Tlag_list=[];p.L_lim=0;
+Tlag_list=[];
 for i=1:p.max_gener
     [sta,Tlag_list]=update_apical_dpp_time(sta,p,Tlag_list);p.i=i; % transport update calculation
     %sta=update_apical_dpp(sta,p);p.i=i; % transport update calculation
@@ -274,7 +259,7 @@ close all;
 disp(['===' p.name '===']);
 disp('');
 p=create_mesh(p);
-sta0=initial_state(p);p.L_lim=0;
+sta0=initial_state(p);
 %sta0.cyto=zeros(11,1);
 %[sta,p]=show_figure(sta,p,0);
 % updata generation
@@ -326,21 +311,20 @@ sta.cyto=[]; %zeros(11,1);
 if p.img==1;
     [sta,p]=show_figure(sta,p,0);
 end
-sta_save=[];Mstep_list=[];Mstep_record=[];p.L_lim=1;
+sta_save=[];Mstep_list=[];Mstep_record=[];
 %sta.cyto_y=zeros(1,p.nx);
 % updata generation
 for i=1:p.max_gener
     [sta,Mstep_list,Mstep_record]=update_apical_dpp_series(sta,p,Mstep_list,Mstep_record);p.i=i; % transport update calculation
     sta=avg_y_cyto(sta,p);
-    sta2=sta_cut(sta,p);
-    sta_all{i}=sta2;sta_all{i}.Msp_list=Mstep_list;sta_all{i}.Msp_record=Mstep_record;
+    sta_all{i}=sta;
     if rem(i,p.sta_save_period)==0||i==p.max_gener
         disp(['generation  ' num2str(i)]);
         if p.img==1;
-        [sta,p]=show_figure(sta2,p,i,sta_save);
+        [sta,p]=show_figure(sta,p,i,sta_save);
         end
-        sta_save{n}=sta2;sta_save{n}.Msp_list=Mstep_list;sta_save{n}.Msp_record=Mstep_record;n=n+1;
-        [re,re_txt]=record(sta2,p,re);
+        sta_save{n}=sta;n=n+1;
+        [re,re_txt]=record(sta,p,re);
     end
 end
 
@@ -348,10 +332,9 @@ end
 if p.img==1;
     F5=figure(5);draw_fianl_record(p,re);
 end
-p=p_cut(p);
 save('cytoneme.mat','sta_save','p','re','re_txt','sta_all');
 toc;
-end % run cytoneme simulation Multi-step
+end % run cytoneme simulation
 function script7(p)
 tic;
 close all;
@@ -364,19 +347,19 @@ sta.cyto=[]; %zeros(11,1);
 if p.img==1;
     [sta,p]=show_figure(sta,p,0);
 end
-sta_save=[];Mstep_list=[];Mstep_record=[];p.L_lim=1;
+sta_save=[];Mstep_list=[];Mstep_record=[];
 %sta.cyto_y=zeros(1,p.nx);
 % updata generation
 for i=1:p.max_gener
     [sta,Mstep_list,Mstep_record]=update_apical_dpp_series_time(sta,p,Mstep_list,Mstep_record);p.i=i; % transport update calculation
     sta=avg_y_cyto(sta,p);
-    sta_all{i}=sta;sta_all{i}.Msp_list=Mstep_list;sta_all{i}.Msp_record=Mstep_record;
+    sta_all{i}=sta;
     if rem(i,p.sta_save_period)==0||i==p.max_gener
         disp(['generation  ' num2str(i)]);
         if p.img==1;
         [sta,p]=show_figure(sta,p,i,sta_save);
         end
-        sta_save{n}=sta;sta_save{n}.Msp_list=Mstep_list;sta_save{n}.Msp_record=Mstep_record;n=n+1;
+        sta_save{n}=sta;n=n+1;
         [re,re_txt]=record(sta,p,re);
     end
 end
@@ -387,8 +370,7 @@ if p.img==1;
 end
 save('cytoneme.mat','sta_save','p','re','re_txt','sta_all');
 toc;
-end % run cytoneme simulation Multi TIME LAG
-
+end % run cytoneme simulation
 
 %% 2. Main program
 %2.1 Main process
@@ -450,11 +432,11 @@ sta_new=dpp_grow_reaction(sta_old,p); % morphogen growing and reaction update in
 sta_new.cyto=[];sta_new.cyto_y=[];sta_new.cyto_theta_mean=[];sta_new.cyto_theta_std=[];
 sta_new.cyto_length_mean=[];sta_new.cyto_length_std=[];sta_new.dpp_y=[];
 % update
-    for j=[1:(p.nx-p.w_dppcent)/2-1 p.nx:-1:(p.nx-p.w_dppcent)/2]  % j=1:p.nx
+    for j=1:p.nx  % j=1:p.nx
     %for j=p.nx:-1:1
         for i=1:p.ny
             if p.xc(i,j)>=0&&p.yc(i,j)>=0
-                [i_t,j_t,d,p,p_format]=target_position(sta_new,p,i,j);
+                [i_t,j_t,d,p,p_format]=target_position(sta_old,p,i,j);
                 if rand(1,1)<p_format
                     amount=morphogen_amount(d,p);
                     % transport from source to receiving cell
@@ -497,7 +479,7 @@ sta_old=sta_new;
 sta_new.cyto=[];sta_new.cyto_y=[];sta_new.cyto_theta_mean=[];sta_new.cyto_theta_std=[];
 sta_new.cyto_length_mean=[];sta_new.cyto_length_std=[];sta_new.dpp_y=[];
 % update
-    for j=[1:(p.nx-p.w_dppcent)/2-1 p.nx:-1:(p.nx-p.w_dppcent)/2]  % j=1:p.nx
+    for j=1:p.nx  % j=1:p.nx
     %for j=p.nx:-1:1
         for i=1:p.ny
             if p.xc(i,j)>=0&&p.yc(i,j)>=0
@@ -545,29 +527,22 @@ sta_new=dpp_grow_reaction(sta_old,p); % morphogen growing and reaction update in
 sta_new.cyto=[];sta_new.cyto_y=[];sta_new.cyto_theta_mean=[];sta_new.cyto_theta_std=[];
 sta_new.cyto_length_mean=[];sta_new.cyto_length_std=[];sta_new.dpp_y=[];c_i=1;
 % update
-    for j=[1:(p.nx-p.w_dppcent)/2-1 p.nx:-1:(p.nx-p.w_dppcent)/2]  % j=1:p.nx
-    %for j=[1:p.nx/2-p.w_dppcent p.nx:-1:p.nx/2+1]  % j=1:p.nx
+    for j=1:p.nx  % j=1:p.nx
     %for j=p.nx:-1:1
         for i=1:p.ny
             if p.xc(i,j)>=0&&p.yc(i,j)>=0
-                [i_t,j_t,d,p,p_format]=target_position(sta_new,p,i,j);
+                [i_t,j_t,d,p,p_format]=target_position(sta_old,p,i,j);
                 if rand(1,1)<p_format
-                    [Mstep_list,Mstep_record,c_i,newc]=multi_transport_record(Mstep_list,Mstep_record,i,j,i_t,j_t,c_i,d);
+                    [Mstep_list,Mstep_record,c_i]=multi_transport_record(Mstep_list,Mstep_record,i,j,i_t,j_t,c_i,d);
                 else
                     [Mstep_list,Mstep_record,sta_new]=multi_transport_update(Mstep_list,Mstep_record,sta_new,i,j,p);
-                    newc=-1;
-                end
-                if newc==0
-                    if rand(1,1)<p_format
-                        [Mstep_list,Mstep_record,c_i]=multi_transport_record2(Mstep_list,Mstep_record,i,j,i_t,j_t,c_i,d);
-                    end      
                 end
             end
         end
     end
     for j=1:p.nx
         for i=1:p.ny
-            sta_new.dpp(i,j)=sta_new.dpp(i,j)-p.deg_time*sta_new.dpp(i,j);
+            sta_new.dpp(i,j)=max(sta_new.dpp(i,j)-p.deg_time,0);
         end
     end
 end 
@@ -577,7 +552,7 @@ sta_new=dpp_grow_reaction(sta_old,p); % morphogen growing and reaction update in
 sta_new.cyto=[];sta_new.cyto_y=[];sta_new.cyto_theta_mean=[];sta_new.cyto_theta_std=[];
 sta_new.cyto_length_mean=[];sta_new.cyto_length_std=[];sta_new.dpp_y=[];c_i=1;Tlag_list=[];
 % update
-    for j=[1:(p.nx-p.w_dppcent)/2-1 p.nx:-1:(p.nx-p.w_dppcent)/2]  % j=1:p.nx
+    for j=1:p.nx  % j=1:p.nx
     %for j=p.nx:-1:1
         for i=1:p.ny
             if p.xc(i,j)>=0&&p.yc(i,j)>=0
@@ -599,7 +574,7 @@ sta_new.cyto_length_mean=[];sta_new.cyto_length_std=[];sta_new.dpp_y=[];c_i=1;Tl
         end
     end
     [sta_new,Tlag_list]=update_time_transport(p,Tlag_list,sta_new);
-end
+end 
 function sta_new=dpp_grow_reaction(sta_old,p)
 [ny,nx]=size(sta_old.dpp);
 sta_new=sta_old;
@@ -630,16 +605,8 @@ function [i_t,j_t,d,p,p_format]=target_position(sta_old,p,i,j)
     % define search sapce for receiving cell
     i_o=max(i-p.area_ry,1);j_o=max(j-p.area_rx,1);
     se_regi=sta_old.dpp(i_o:min(i+p.area_ry,p.ny),j_o:min(j+p.area_rx,p.nx));
-    if p.AN==1||p.AN==2 % only angle=0 or 180
-        i_Lo=max(i,1);j_Lo=max(j-p.length,1);
-        L_regi=sta_old.dpp(i_Lo,j_Lo:min(j+p.length,p.nx));
-    else
-        i_Lo=max(i-p.length,1);j_Lo=max(j-p.length,1);
-        L_regi=sta_old.dpp(i_Lo:min(i+p.length,p.ny),j_Lo:min(j+p.length,p.nx));
-    end
     [angle_g,ave_grad]=direction_gradient(se_regi,p,i,j,i_o,j_o); % 20140817 add direction_gradient() here
-    [angle_gL,ave_gradL]=direction_gradientL(L_regi,p,i,j,i_Lo,j_Lo); % 20140817 add direction_gradient() here, angle_g(n,:)=[n c g i_t j_t];
-    [i_t,j_t,d,p_format]=target_find(angle_g,ave_grad,sta_old,p,i,j,angle_gL,ave_gradL); % 20140817 add direction_gradient() here
+    [i_t,j_t,d,p_format]=target_find(angle_g,ave_grad,sta_old,p,i,j); % 20140817 add direction_gradient() here
 end % TP() - target morphogen source cell()
 function [angle_g,ave_grad]=direction_gradient(se_regi,p,i,j,i_o,j_o)
 [a,b]=size(se_regi);
@@ -676,7 +643,7 @@ c0=se_regi(i-i_o+1,j-j_o+1);
 angle_t=angle_table(angle_table(:,1)>=345|angle_table(:,1)<15,:); % angle_t: part of 'angle_table' for range of angle
 angle_t=angle_t(angle_t(:,2)~=0,:);
 angle_t=sortrows(angle_t,2);
-angle_g{q}=position_to_gradient(angle_t,q,c0,i,j); % angle_g: re-sorted and ranked from 'angle_t' using distance
+angle_g{q}=position_to_gradient(angle_t,q,c0); % angle_g: re-sorted and ranked from 'angle_t' using distance
 ave_grad(1,1)=mean(angle_g{1}(:,3)); % <------old ave gradient(07/08)
 %ave_grad(1,1)=mean(angle_g{1}(:,2)); % <------new ave gradient(07/08)
 for q=2:12 % thita=30,60...330
@@ -686,73 +653,14 @@ for q=2:12 % thita=30,60...330
         ave_grad(1,q)=0;
     else
         angle_t=sortrows(angle_t,2);
-        angle_g{q}=position_to_gradient(angle_t,q,c0,i,j);
+        angle_g{q}=position_to_gradient(angle_t,q,c0);
         ave_grad(1,q)=mean(angle_g{q}(:,3)); % <------old ave gradient(07/08)
         %ave_grad(1,q)=mean(angle_g{q}(:,2)); % <------new ave gradient(07/08)
     end
 end
 end
-function [angle_g,ave_grad]=direction_gradientL(se_regi,p,i,j,i_o,j_o)
-if p.capping==1||p.capping==0
-[a,b]=size(se_regi);
-angle_table=zeros(a*b,7); % angle_table=[thi d i j x y c]
-x_orig=p.xc(i,j);y_orig=p.yc(i,j);
-for ii=1:a  % only ii,jj are se_regi coordination system
-    for jj=1:b
-        x_target=p.xc(ii+i_o-1,jj+j_o-1);y_target=p.yc(ii+i_o-1,jj+j_o-1);
-        if x_target-x_orig<0
-            angle_table(jj+(ii-1)*b,1)=atand((y_target-y_orig)/(x_target-x_orig))+180;
-        elseif y_target-y_orig<0
-            angle_table(jj+(ii-1)*b,1)=atand((y_target-y_orig)/(x_target-x_orig))+360;
-        else
-            if abs(y_target-y_orig)<0.001&&abs(x_target-x_orig)<0.001
-                angle_table(jj+(ii-1)*b,1)=0;
-            else          
-                angle_table(jj+(ii-1)*b,1)=atand((y_target-y_orig)/(x_target-x_orig));
-            end
-        end
-        angle_table(jj+(ii-1)*b,2)= distance(x_orig,y_orig,x_target,y_target); %dist between center to target
-        angle_table(jj+(ii-1)*b,3)=ii+i_o-1; % ii(search space) --> i(target in disc plane)
-        angle_table(jj+(ii-1)*b,4)=jj+j_o-1; % jj(search space) --> j(target in disc plane)
-        angle_table(jj+(ii-1)*b,5)=x_target;angle_table(jj+(ii-1)*b,6)=y_target; % real coordinates for target
-        angle_table(jj+(ii-1)*b,7)=se_regi(ii,jj); % morphogen concentration
-    end
-end
-angle_table=sortrows(angle_table); % all elemetns in search space sorted by angle
-ave_grad=zeros(1,12);
-q=1; % thita= 0
-% angle_t: temp [thi d i j x y c]
-%angle_t0=[0 0 i j x_orig y_orig se_regi(i-i_o+1,j-j_o+1)];
-c0=se_regi(i-i_o+1,j-j_o+1);
-
-angle_t=angle_table(angle_table(:,1)>=345|angle_table(:,1)<15,:); % angle_t: part of 'angle_table' for range of angle
-angle_t=angle_t(angle_t(:,2)~=0,:);
-angle_t=sortrows(angle_t,2);
-angle_g{q}=position_to_gradient(angle_t,q,c0,i,j); % angle_g: re-sorted and ranked from 'angle_t' using distance: angle_g(n,:)=[n c g temp(b,3) temp(b,4)];
-ave_grad(1,1)=mean(angle_g{1}(:,3)); % <------old ave gradient(07/08)
-%ave_grad(1,1)=mean(angle_g{1}(:,2)); % <------new ave gradient(07/08)
-for q=2:12 % thita=30,60...330
-    angle_t=angle_table(angle_table(:,1)>=(q-1)*30-15&angle_table(:,1)<(q-1)*30+15,:);
-    if isempty(angle_t)==1
-        angle_g{q}=[];
-        ave_grad(1,q)=0;
-    else
-        angle_t=sortrows(angle_t,2);
-        angle_g{q}=position_to_gradient(angle_t,q,c0,i,j);
-        ave_grad(1,q)=mean(angle_g{q}(:,3)); % <------old ave gradient(07/08)
-        %ave_grad(1,q)=mean(angle_g{q}(:,2)); % <------new ave gradient(07/08)
-    end
-end
-else
-    angle_g=[];ave_grad=[];
-end
-end
-function [i_t,j_t,d,p_format]=target_find(angle_g,ave_grad,sta_old,p,i,j,angle_gL,ave_gradL)
-% search the target cell(i_t,j_t) and calculate initiate probabiity 
-% thi: angle(1~12), ave_grad: <1x12 double>, angle_g: <1x12 cell>
-
+function [i_t,j_t,d,p_format]=target_find(angle_g,ave_grad,sta_old,p,i,j)
 stop=0;
-    
 % pathfinding angle function - thi:1~12, ag= averaged gradient of thi
 if p.AN==1 % pathfinding angle (1. const)
     if j<(p.nx-p.w_dppcent)/2
@@ -776,11 +684,11 @@ elseif p.AN==3 % pathfinding angle (3. max averaged gradient)
     end
 end
 if ag==0
-    %stop=1;
-    agrad=0; % agrad: averaged gradient =0
-    length_maxc=0; % length_maxc cytoneme length=0
+    stop=1;
+    agrad=0;
+    length_maxc=0;
 else
-    agrad=ave_grad(1,thi); % agrad: averaged gradient in thi
+    agrad=ave_grad(1,thi); % agrad: averaged gradient
     if p.morphogen_init==1
         [~,b]=max(angle_g{thi}(:,2));
         length_maxc=angle_g{thi}(b,1);
@@ -803,7 +711,6 @@ if isempty(angle_g{thi})==1
     i_t=i;j_t=j;
 else
     % pathfinding length function
-    %{
     if p.LE==1&&p.L_lim==1          % pathfinding length (1, const)
         length=min(max(ceil(p.length),1),max(angle_g{thi}(:,1)));
     elseif p.LE==2&&p.L_lim==1        % pathfinding length (2, rand)
@@ -814,65 +721,29 @@ else
         length=length_maxc;
     elseif p.LE==5&&p.L_lim==1        % pathfinding length (5, fun of inverse gradient)
         length=min(p.gradient_L/max(agrad,1),max(angle_g{thi}(:,1)));
-    elseif p.LE==6&&p.L_lim==1        % pathfinding length (4, highest concentration in thita)
-        if ag==0
-            length=min(max(ceil(p.length),1),max(angle_g{thi}(:,1)));
-        else
-            length=length_maxc;  
-        end
-    elseif p.LE==7&&p.L_lim==1        % pathfinding length (5, fun of inverse gradient)
-        length=min(max(ceil(p.length),1),max(angle_g{thi}(:,1)));
-    %}    
-    if p.LE==1       % pathfinding length (1, const)no limit
+    elseif p.LE==1&&p.L_lim==0        % pathfinding length (1, const)no limit
         length=max(ceil(p.length),1);
-    elseif p.LE==2       % pathfinding length (2, rand)no limit
+    elseif p.LE==2&&p.L_lim==0        % pathfinding length (2, rand)no limit
         length=max(ceil(p.length*rand(1)),1);
-    elseif p.LE==3       % pathfinding length (3, fun of aved gradient)no limit
+    elseif p.LE==3&&p.L_lim==0        % pathfinding length (3, fun of aved gradient)no limit
         length=p.gradient_L*max(agrad,1);
-    elseif p.LE==4     % pathfinding length (4, highest concentration in thita)no limit
+    elseif p.LE==4&&p.L_lim==0        % pathfinding length (4, highest concentration in thita)no limit
         length=length_maxc;
-    elseif p.LE==5      % pathfinding length (5, fun of inverse gradient)no limit
+    elseif p.LE==5&&p.L_lim==0       % pathfinding length (5, fun of inverse gradient)no limit
         length=p.gradient_L/max(agrad,1);
-    elseif p.LE==6     % pathfinding length (4, highest concentration in thita)
-        if ag==0
-            length=min(max(ceil(p.length),1),max(angle_g{thi}(:,1)));
-        else
-            length=length_maxc;  
-        end
-    elseif p.LE==7        % pathfinding length (5, fun of inverse gradient)
-        length=max(ceil(p.length),1);
     end
-    
-    % filopodia length limitation in sense region
-    if p.L_lim==1
-        length=min(length,max(angle_g{thi}(:,1)));
-    end
-    
-    % filopodia capping stop criteria
-    if p.capping==1
-        length2=capping_length(angle_gL{thi},length,p);
-    end
-    
-    % build angle_gg and i_t,j_t
-    if isempty(angle_gL)==1
-        angle_gg=angle_g{1,thi}(angle_g{1,thi}(:,1)>0,:);
-    else
-        angle_gg=angle_gL{1,thi}(angle_gL{1,thi}(:,1)>0,:);
-    end
-    [~,n]=min(abs(angle_gg(:,1)-length2));
-    if length2==0
-        i_t=i;j_t=j;
-        d=0;stop=1;
-    else
-        i_t=angle_gg(n,4);j_t=angle_gg(n,5);
-        d=angle_gg(n,1);
-    end
-    %if j>p.nx/2-p.w_dppcent&&j<p.nx/2
-    %    stop=1;
-    %end
+    angle_gg=angle_g{1,thi}(angle_g{1,thi}(:,1)>0,:);
+    [~,n]=min(abs(angle_gg(:,1)-length));
+    i_t=angle_gg(n,4);j_t=angle_gg(n,5);
+    d=angle_gg(n,1);
 end
-
-
+if p.morphogen_init==1
+    if sta_old.dpp(i_t,j_t)==0
+        stop=1;
+    else
+        stop=0;
+    end
+end
 % probability of formation function 
 if p.PF==1&&stop~=1 % probability of formation (1. const)
     p_format=p.prob_format;
@@ -884,32 +755,8 @@ elseif p.PF==4&&stop~=1 % probability of formation (3. p=d_effect)
     p_format=dist_effect(d,p);
 elseif p.PF==5&&stop~=1 % probability of formation (3. p=d_effect)
     p_format=p.gradient_P3*p.prob_format/agrad;
-elseif p.PF==6&&stop~=1 % probability of formation (3. p=d_effect)
-    p_format=p.prob_format*(1-agrad/(p.gradient_P4+agrad));
-elseif p.PF==7&&stop~=1 % probability of formation (3. p=d_effect)
-    p_format=p.prob_format*(1-(sta_old.dpp(i,j)/(p.gradient_P4+sta_old.dpp(i,j))));
 else
     p_format=0;
-end
-end
-function L=capping_length(angle_gL,L,p)
-if isempty(angle_gL)~=1&&L~=0
-    if size(angle_gL,1)>L
-        L2=ceil(L);L3=min(L2,size(angle_gL,1));
-        angle_gL=angle_gL(1:L3,:);
-    end
-    if p.CA==1
-        stop=0;
-        for i=1:size(angle_gL,1)
-            c_t=angle_gL(i,2); %c_t=(concentration in i_t,j_t)
-            ca_TH=p.stop_format*c_t/(p.gradient_P5+c_t);
-            if rand(1,1)<ca_TH&&stop==0
-                stop=1;L=i;
-            end
-        end
-    elseif p.CA==2
-        % add
-    end
 end
 end
 function amount=morphogen_amount(d,p)
@@ -923,7 +770,7 @@ switch p.MA
 end
 end % MA() - morphogen amount for cytoneme transport()
 
-function angle_g=position_to_gradient(angle_t,q,c0,i,j)
+function angle_g=position_to_gradient(angle_t,q,c0)
 nn=ceil(max(angle_t(:,2)));
 angle_g=zeros(nn,5);
 if q==1  % thita=0 tranfrom 345~360degree to 0~15
@@ -944,7 +791,7 @@ for n=1:nn % in specific thi, from distance=1 to nn
     end
     % g=(angle_t(n,7)-angle_t(n-1,7))/(distance(angle_t(n-1,5),angle_t(n-1,6),angle_t(n,5),angle_t(n,6)));
     if isempty(temp)
-        angle_g(n,:)=[1 zeros(1,2) i j];
+        angle_g(n,:)=zeros(1,5);
     else    
         angle_g(n,:)=[n c g temp(b,3) temp(b,4)];
     end
@@ -1113,77 +960,37 @@ elseif p.morphogen_init==2
 end
 end
 function sta=check_cyto(sta,p)
-sta2.cyto=[];
-for j=1:size(sta.cyto,2)
-if sta.cyto(2,j)<=p.fig_bound||sta.cyto(6,j)<=p.fig_bound||sta.cyto(2,j)>p.nx-p.fig_bound||sta.cyto(6,j)>p.nx-p.fig_bound
-else
-    A=sta.cyto(:,j);A(2,1)=A(2,1)-p.fig_bound;A(6,1)=A(6,1)-p.fig_bound;
-    sta2.cyto=[sta2.cyto A];
-end
-end
-A=sta2.cyto;sta.cyto=sta2.cyto;
-[n,m]=size(A);sta_no=0;
-B=zeros(m,p.nx-p.fig_bound*2);
-m_inverse=0;
+
+A=sta.cyto;[n,m]=size(A);
+B=zeros(m,p.nx);    
 for j=1:m
-    if A(6,j)<A(2,j)&&sta_no==0
-    m_inverse=j;sta_no=1;
-    end
-end
-if m_inverse==0
-    AA=A;
-elseif m_inverse==1
-    AA=A(:,end:-1:1);
-else
-    AA=[A(:,1:m_inverse-1) A(:,end:-1:m_inverse)];
-end
-for j=1:m
-    if AA(2,j)<=AA(6,j)
-        B(j,AA(2,j))=1; 
-        B(j,AA(2,j)+1:AA(6,j))=2; 
+    if A(2,j)<=A(6,j)
+        B(j,A(2,j))=1; 
+        B(j,A(2,j)+1:A(6,j))=2; 
     else
-        B(j,AA(2,j))=1; 
-        B(j,AA(6,j):AA(2,j)-1)=2;     
+        B(j,A(2,j))=1; 
+        B(j,A(6,j):A(2,j)-1)=2;     
     end
 end
 sta.cyto_matrix=B;
 end
-function [Mstep_list,Mstep_record,c_i,newc]=multi_transport_record(Mstep_list,Mstep_record,i,j,i_t,j_t,c_i,d)
-if isempty(Mstep_list)==1
-   Mstep_list=[c_i;i;j;i_t;j_t;1;d];
-   Mstep_record{c_i}=[i j;i_t j_t];
-   c_i=c_i+1;newc=1;
-else
-m=find(Mstep_list(4,:)==i&Mstep_list(5,:)==j);
-if isempty(m)==1
-    Mstep_list_temp=[c_i;i;j;i_t;j_t;1;d];
-    Mstep_list=[Mstep_list Mstep_list_temp];
-    Mstep_record{c_i}=[i j;i_t j_t];
-    c_i=c_i+1;
-    newc=1;
-else
-    for jj=m
-        %Mstep_list(4,m)=i_t;Mstep_list(5,m)=j_t;
-        %Mstep_list(6,m)=Mstep_list(6,m)+1;Mstep_list(7,m)=Mstep_list(7,m)+d;
-        %Mstep_record{Mstep_list(1,m)}=[Mstep_record{Mstep_list(1,m)};[i_t j_t]];
-        Mstep_list(4,jj)=i_t;Mstep_list(5,jj)=j_t;
-        Mstep_list(6,jj)=Mstep_list(6,jj)+1;Mstep_list(7,jj)=Mstep_list(7,jj)+d;
-        Mstep_record{Mstep_list(1,jj)}=[Mstep_record{Mstep_list(1,jj)};[i_t j_t]];
-        newc=0;
-    end
-end
-end
-end
-function [Mstep_list,Mstep_record,c_i]=multi_transport_record2(Mstep_list,Mstep_record,i,j,i_t,j_t,c_i,d)
+function [Mstep_list,Mstep_record,c_i]=multi_transport_record(Mstep_list,Mstep_record,i,j,i_t,j_t,c_i,d)
 if isempty(Mstep_list)==1
    Mstep_list=[c_i;i;j;i_t;j_t;1;d];
    Mstep_record{c_i}=[i j;i_t j_t];
    c_i=c_i+1;
 else
+m=find(Mstep_list(4,:)==i&Mstep_list(5,:)==j, 1);
+if isempty(m)==1
     Mstep_list_temp=[c_i;i;j;i_t;j_t;1;d];
     Mstep_list=[Mstep_list Mstep_list_temp];
     Mstep_record{c_i}=[i j;i_t j_t];
     c_i=c_i+1;
+else
+    Mstep_list(4,m)=i_t;Mstep_list(5,m)=j_t;
+    Mstep_list(6,m)=Mstep_list(6,m)+1;Mstep_list(7,m)=Mstep_list(7,m)+d;
+    Mstep_record{Mstep_list(1,m)}=[Mstep_record{Mstep_list(1,m)};[i_t j_t]];
+end
 end
 end
 function [Mstep_list,Mstep_record,sta_new]=multi_transport_update(Mstep_list,Mstep_record,sta_old,i,j,p)
@@ -1248,8 +1055,8 @@ else
             %sta_new.dpp(i_o,j_o)=sta_old.dpp(i_o,j_o)+(sta_old.dpp(i,j)-real_target_dpp);
             else
             real_target_dpp=max(sta_old.dpp(i_o,j_o)-amount,0);
-            sta_new.dpp(i_o,j_o)=real_target_dpp;
-            %sta_new.dpp(i,j)=sta_old.dpp(i,j)+(sta_old.dpp(i_o,j_o)-real_target_dpp);
+            %sta_new.dpp(i_o,j_o)=real_target_dpp;
+            sta_new.dpp(i,j)=sta_old.dpp(i,j)+(sta_old.dpp(i_o,j_o)-real_target_dpp);
             end
         else
             real_target_dpp=max(sta_old.dpp(i,j)-amount,0);
@@ -1281,7 +1088,8 @@ end
 function [sta,p]=show_figure(sta,p,ge,sta_save)
     if p.show_every_img==1;
         % draw mesh color distribution
-        F1=figure('visible','on');[sta,p]=draw_mesh(sta,p,ge);
+        F1=figure('visible','on');
+        [sta,p]=draw_mesh(sta,p,ge);
         % draw 3D mesh color distribution
         F2=figure('visible','on');drawsurf(sta,p,ge);
     else
@@ -1414,11 +1222,9 @@ function drawsurf(sta,p,ge)
 end
 function out_fig(sta,p,re,ge,sta_save)
     % draw mesh color distribution
-    F1=figure('visible','off');p.height=0;
-    sta=draw_mesh(sta,p,ge);
+    F1=figure('visible','off');p.height=0;sta=draw_mesh(sta,p,ge);
     % draw 3D mesh color distribution
-    F2=figure('visible','off');
-    drawsurf(sta,p,ge);
+    F2=figure('visible','off');drawsurf(sta,p,ge);
     F3=figure('visible','off');p=draw_cytoneme(sta,p,ge,F3);
     %{
     if exist('sta_save','var')~=1
@@ -1646,65 +1452,6 @@ else
     re=[re A];
 end
 end
-function sta2=sta_cut(sta,p)
-if p.fig_bound>0
-    if isfield(sta,'dpp')==1
-        sta2.dpp=sta.dpp(:,p.fig_bound+1:end-p.fig_bound);
-    end
-    if isfield(sta,'cyto_y')==1
-        sta2.cyto_y=sta.cyto_y(:,p.fig_bound+1:end-p.fig_bound);
-    end
-    if isfield(sta,'cyto_theta_mean')==1
-        sta2.cyto_theta_mean=sta.cyto_theta_mean(:,p.fig_bound+1:end-p.fig_bound);
-    end
-    if isfield(sta,'cyto_theta_std')==1
-        sta2.cyto_theta_std=sta.cyto_theta_std(:,p.fig_bound+1:end-p.fig_bound);
-    end
-    if isfield(sta,'cyto_length_mean')==1
-        sta2.cyto_length_mean=sta.cyto_length_mean(:,p.fig_bound+1:end-p.fig_bound);
-    end
-    if isfield(sta,'cyto_length_std')==1
-        sta2.cyto_length_std=sta.cyto_length_std(:,p.fig_bound+1:end-p.fig_bound);
-    end
-    if isfield(sta,'dpp_y')==1
-        sta2.dpp_y=sta.dpp_y(:,p.fig_bound+1:end-p.fig_bound);
-    end
-    if isfield(sta,'cyto_matrix')==1
-        sta2.cyto_matrix=sta.cyto_matrix;
-    end
-
-    if isfield(sta,'cyto')==1
-        sta2.cyto=[];
-        for j=1:size(sta.cyto,2)
-        if sta.cyto(2,j)<=p.fig_bound||sta.cyto(6,j)<=p.fig_bound||sta.cyto(2,j)>=p.nx-p.fig_bound||sta.cyto(6,j)>=p.nx-p.fig_bound
-        else
-            A=sta.cyto(:,j);A(2,1)=A(2,1)-p.fig_bound;A(6,1)=A(6,1)-p.fig_bound;
-            sta2.cyto=[sta2.cyto A];
-        end
-        end
-    end
-
-    if isfield(sta,'cyto')==1
-        sta2.cyto=sta.cyto;
-    end
-else
-    sta2=sta;  
-end
-end
-function p2=p_cut(p)
-p2=p;
-p2.nx=p.nx-p.fig_bound*2;
-p2.xindex=p.xindex(:,p.fig_bound+1:end-p.fig_bound);
-p2.yindex=p.yindex(:,p.fig_bound+1:end-p.fig_bound);
-p2.yc=p.yc(:,p.fig_bound+1:end-p.fig_bound);
-p2.xc=p.xc(:,p.fig_bound+1:end-p.fig_bound);
-p2.h2d=p.h2d(:,:,p.fig_bound+1:end-p.fig_bound);
-p2.h2dh=p.h2dh(:,:,p.fig_bound+1:end-p.fig_bound);
-p2.h3d=p.h3d(:,:,p.fig_bound+1:end-p.fig_bound);
-p2.h3dh=p.h3dh(:,:,p.fig_bound+1:end-p.fig_bound);
-
-end
-
 %3.4 backup code
 function p_thread=cytoneme_formation(d,p,mr,ms,dmr,dms)
 switch p.CF
@@ -1718,76 +1465,3 @@ switch p.CF
         p_thread=p.CF_base*dist_effect(d,p,p.d_dist)*mor_effect(mr,ms,dmr,dms,p,p.m_dist);
 end
 end % CF() - cytoneme formation event()
-function [Mstep_list,Mstep_record,sta_new]=multi_transport_update_after(Mstep_list,Mstep_record,sta_old,i,j,i_t,j_t,p,d,p_format)
-sta_new=sta_old;
-if isempty(Mstep_list)==1
-else
-    m=find(Mstep_list(4,:)==i&Mstep_list(5,:)==j, 1);
-    if isempty(m)==1
-    else
-        %series cytoneme ended---(add 151019)
-            %Mstep_list(4,m)=i;Mstep_list(5,m)=j;
-            %Mstep_list(6,m)=Mstep_list(6,m)+1;Mstep_list(7,m)=Mstep_list(7,m)+d;
-            %Mstep_record{Mstep_list(1,m)}=[Mstep_record{Mstep_list(1,m)};[i_t j_t]];
-        % ---------------
-        amount=morphogen_amount(Mstep_list(7,m),p);
-        i_o=Mstep_list(2,m);j_o=Mstep_list(3,m);
-        % transport from source to receiving cell
-        if p.morphogen_init==2
-            if j<p.nx/2
-            real_target_dpp=max(sta_old.dpp(i,j)-amount,0);
-            sta_new.dpp(i,j)=real_target_dpp;
-            sta_new.dpp(i_o,j_o)=sta_old.dpp(i_o,j_o)+(sta_old.dpp(i,j)-real_target_dpp);
-            else
-            real_target_dpp=max(sta_old.dpp(i_o,j_o)-amount,0);
-            sta_new.dpp(i_o,j_o)=real_target_dpp;
-            sta_new.dpp(i,j)=sta_old.dpp(i,j)+(sta_old.dpp(i_o,j_o)-real_target_dpp);
-            end
-        else
-            real_target_dpp=max(sta_old.dpp(i,j)-amount,0);
-            sta_new.dpp(i,j)=real_target_dpp;
-            sta_new.dpp(i_o,j_o)=sta_old.dpp(i_o,j_o)+(sta_old.dpp(i,j)-real_target_dpp);
-        end                  
-        % update cytoneme events
-        if sta_new.dpp(i,j)==sta_old.dpp(i,j)
-        else
-        source_xy=center_coord(p,j_o,i_o);target_xy=center_coord(p,j,i);
-        sta_new.cyto=[sta_new.cyto [i_o;j_o;source_xy';i;j;target_xy';Mstep_list(7,m);amount/p.amount;amount]];
-        end
-        mmm=size(Mstep_list,2);
-        if m==1
-            Mstep_list=Mstep_list(:,2:end);
-        elseif m==mmm
-            Mstep_list=Mstep_list(:,1:m-1);
-        else
-            Mstep_list=[Mstep_list(:,1:m-1) Mstep_list(:,m+1:end)];
-        end
-        step_record{m}=[];
-    end
-end
-end
-function [sta_new,Mstep_list,Mstep_record]=update_apical_dpp_series_old(sta_old,p,Mstep_list,Mstep_record)
-sta_new=dpp_grow_reaction(sta_old,p); % morphogen growing and reaction update in every generation
-%sta_new.cyto=[];
-sta_new.cyto=[];sta_new.cyto_y=[];sta_new.cyto_theta_mean=[];sta_new.cyto_theta_std=[];
-sta_new.cyto_length_mean=[];sta_new.cyto_length_std=[];sta_new.dpp_y=[];c_i=1;
-% update
-    for j=[1:(p.nx-p.w_dppcent)/2-1 p.nx:-1:(p.nx-p.w_dppcent)/2]  % j=1:p.nx
-    %for j=p.nx:-1:1
-        for i=1:p.ny
-            if p.xc(i,j)>=0&&p.yc(i,j)>=0
-                [i_t,j_t,d,p,p_format]=target_position(sta_old,p,i,j);
-                if rand(1,1)<p_format
-                    [Mstep_list,Mstep_record,c_i]=multi_transport_record(Mstep_list,Mstep_record,i,j,i_t,j_t,c_i,d);
-                else
-                    [Mstep_list,Mstep_record,sta_new]=multi_transport_update(Mstep_list,Mstep_record,sta_new,i,j,p);
-                end
-            end
-        end
-    end
-    for j=1:p.nx
-        for i=1:p.ny
-            sta_new.dpp(i,j)=max(sta_new.dpp(i,j)-p.deg_time,0);
-        end
-    end
-end 
