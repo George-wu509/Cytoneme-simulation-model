@@ -1,4 +1,4 @@
-# Guild to to run create3Dhex_dir to build cytoneme simulation model
+# Guild to build cytoneme simulation model using create3Dhex_dir.m
 cytoneme-mediated morphogen transport model made by George.Wu 
 
 Outline of this document
@@ -22,17 +22,26 @@ This document introduces the code structure of create3Dhex_dir.m matlab file whi
 To run the first cytoneme model:
 - step 1: change the parameter values in function p=parameter_set() (line 50)
    - For example 1:
+   
      To test different hypothesis cytoneme model, you can change: p.AN, p.LE, p.PF, p.MA
+     
    - For example 2:
+   
      To change wing disc physical model, you can change: p.nx, p.ny, p.w_dppcent
+     
    - For example 3:
+   
      To choice morphogen, you can change: p.morphogen_init (Dpp =1, Hh=2), p.amount
+     
    - For example 4:
+   
      To display or save figures, you can change: p.img, p.show_every_img, p.save_every_img
+
 
 step 2: >> create3Dhex_dir(1) (type in matlab command line and ENTER)
 
 step 3: finished!
+
 All results will be stored in cytoneme.mat including p(parameter), re_txt(explanations of re), sta_all(all generation results), sta_save(generation results you displayed), re('number of cytonemes in distance range groups';'#cytoneme events';'# cytonemes';'mean cytoneme distances’).
 
 
