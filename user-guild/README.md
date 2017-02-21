@@ -15,26 +15,28 @@ This document introduces the code structure of create3Dhex_dir.m matlab file whi
 ![image](https://github.com/George-wu509/Cell-3D-segmentation-display-GUI/blob/master/cover/Segshow3D%20cover2.png)
 
 
-
+<!-- MarkdownTOC depth=4 -->
 <a name="How-to-simulate-the-first-cytoneme-model" />
 ## 1: How to simulate the first cytoneme model 
 
 To run the first cytoneme model:
-step 1: change the parameter values in function p=parameter_set() (line 50)
-For example 1:
-To test different hypothesis cytoneme model, you can change: p.AN, p.LE, p.PF, p.MA
-For example 2:
-To change wing disc physical model, you can change: p.nx, p.ny, p.w_dppcent
-For example 3:
-To choice morphogen, you can change: p.morphogen_init (Dpp =1, Hh=2), p.amount
-For example 4:
-To display or save figures, you can change: p.img, p.show_every_img, p.save_every_img
+- step 1: change the parameter values in function p=parameter_set() (line 50)
+   - For example 1:
+     To test different hypothesis cytoneme model, you can change: p.AN, p.LE, p.PF, p.MA
+   - For example 2:
+     To change wing disc physical model, you can change: p.nx, p.ny, p.w_dppcent
+   - For example 3:
+     To choice morphogen, you can change: p.morphogen_init (Dpp =1, Hh=2), p.amount
+   - For example 4:
+     To display or save figures, you can change: p.img, p.show_every_img, p.save_every_img
 
 step 2: >> create3Dhex_dir(1) (type in matlab command line and ENTER)
 
 step 3: finished!
 All results will be stored in cytoneme.mat including p(parameter), re_txt(explanations of re), sta_all(all generation results), sta_save(generation results you displayed), re('number of cytonemes in distance range groups';'#cytoneme events';'# cytonemes';'mean cytoneme distances’).
 
+
+<!-- MarkdownTOC depth=4 -->
 <a name="Code-sttructure" />
 ## 2: Code structure
 
@@ -50,12 +52,16 @@ To build one cytoneme simulation model and run it, you can type this in matlab c
 To batch run several cytoneme simulation models:
 > create3Dhex_dir(3)
 
+
+<!-- MarkdownTOC depth=4 -->
 <a name="ch-3-linear-regression" />
 ## 3: Setup parameters
 
 You can change the default parameter values in p=parameter_set() function. p is a matlab structure variable which contains all model parameters. Basically this is the only place you will need to change in this code. Here are some important parameters to run cytoneme simulation listed below:
 
 
+
+<!-- MarkdownTOC depth=4 -->
 <a name="ch-4-support-vector-machines" />
 ## 4: Main functions
 
