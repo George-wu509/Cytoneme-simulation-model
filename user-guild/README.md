@@ -15,7 +15,7 @@ This document introduces the code structure of create3Dhex_dir.m matlab file whi
 ![image](https://github.com/George-wu509/Cell-3D-segmentation-display-GUI/blob/master/cover/Segshow3D%20cover2.png)
 
 
-## [1: How to simulate the first cytoneme model ](#How-to-simulate-the-first-cytoneme-model)
+## [1: How to simulate the first cytoneme model ](How-to-simulate-the-first-cytoneme-model)
 
 To run the first cytoneme model:
 step 1: change the parameter values in function p=parameter_set() (line 50)
@@ -33,7 +33,7 @@ step 2: >> create3Dhex_dir(1) (type in matlab command line and ENTER)
 step 3: finished!
 All results will be stored in cytoneme.mat including p(parameter), re_txt(explanations of re), sta_all(all generation results), sta_save(generation results you displayed), re('number of cytonemes in distance range groups';'#cytoneme events';'# cytonemes';'mean cytoneme distances’).
 
-## [2: Code structure ](#Code-sttructure)
+## [2: Code structure ](Code-sttructure)
 
 This is what you will see when you collapse the create3Dhex_dir.m file. There are totally 51 functions in this single matlab file.
 
